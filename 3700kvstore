@@ -49,46 +49,46 @@ class Replica:
             if msg['type'] == 'get' or msg['type'] == 'put':
                 #print(msg)
                 self.get_put_message(msg)
-            elif msg['type'] == 'heartbeat':
-                self.append_entries_message(msg)
-                self.leader_time = time.time()
-            elif msg['type'] == 'send_request_vote':
-                self.recv_request_vote_message(msg)
-            elif msg['type'] == 'recv_request_vote':
-                self.do_election(msg)
+            # elif msg['type'] == 'heartbeat':
+            #     self.append_entries_message(msg)
+            #     self.leader_time = time.time()
+            # elif msg['type'] == 'send_request_vote':
+            #     self.recv_request_vote_message(msg)
+            # elif msg['type'] == 'recv_request_vote':
+            #     self.do_election(msg)
             
-            if not self.have_leader and (time.time() - self.leader_time) > self.time_out:
-                self.election()
+            # if not self.have_leader and (time.time() - self.leader_time) > self.time_out:
+            #     self.election()
             
-    def fail_message(self, msg):
-        message = dict()
-        message['src'] = self.id
-        message['dst'] = msg['src']
-        message['leader'] = msg['leader']
-        message['type'] = 'fail'
-        message['MID'] = msg['MID']
-        self.send(message)
+    # def fail_message(self, msg):
+    #     message = dict()
+    #     message['src'] = self.id
+    #     message['dst'] = msg['src']
+    #     message['leader'] = msg['leader']
+    #     message['type'] = 'fail'
+    #     message['MID'] = msg['MID']
+    #     self.send(message)
     
-    def leader_get_put_message(self, msg):
-        message = dict()
-        message['src'] = self.id
-        message['dst'] = msg['src']
-        message['leader'] = self.leader
-        message['type'] = 'ok'
-        message['MID'] = msg['MID']
-        message['key'] = msg['key']
+    # def leader_get_put_message(self, msg):
+    #     message = dict()
+    #     message['src'] = self.id
+    #     message['dst'] = msg['src']
+    #     message['leader'] = self.leader
+    #     message['type'] = 'ok'
+    #     message['MID'] = msg['MID']
+    #     message['key'] = msg['key']
         
-        if msg['type'] == 'get':
-            val = self.store.get(msg['key'])
-            if val :
-                message['value'] = val
-            else :
-                message['value'] = ''
+    #     if msg['type'] == 'get':
+    #         val = self.store.get(msg['key'])
+    #         if val :
+    #             message['value'] = val
+    #         else :
+    #             message['value'] = ''
 
-        elif msg['type'] == 'put':
-            message['value'] = msg['value']
-            self.store[msg['key']] = msg['value']
-        self.send(message)
+    #     elif msg['type'] == 'put':
+    #         message['value'] = msg['value']
+    #         self.store[msg['key']] = msg['value']
+    #     self.send(message)
         
     def get_put_message(self, msg):
         if self.leader == BROADCAST:
@@ -108,72 +108,72 @@ class Replica:
         message['MID'] = msg['MID']
         self.send(message)
         
-    def append_entries_message(self, msg):
-        message = dict()
-        message['src'] = self.id
-        message['dst'] = msg['src']
-        message['type'] = 'append_entries'
+    # def append_entries_message(self, msg):
+    #     message = dict()
+    #     message['src'] = self.id
+    #     message['dst'] = msg['src']
+    #     message['type'] = 'append_entries'
         
-        if not msg['entries']:
+    #     if not msg['entries']:
             
-            if msg['term'] >= self.curr_term:
-                self.leader = msg['leader']
-                self.curr_term = msg['term']
-                message['term'] = self.curr_term
-                message['success'] = True
-                message['leader'] = self.leader
-            else :
-                message['leader'] = self.leader
-                message['term'] = self.curr_term
-                message['success'] = False
-            self.send(message)
+    #         if msg['term'] >= self.curr_term:
+    #             self.leader = msg['leader']
+    #             self.curr_term = msg['term']
+    #             message['term'] = self.curr_term
+    #             message['success'] = True
+    #             message['leader'] = self.leader
+    #         else :
+    #             message['leader'] = self.leader
+    #             message['term'] = self.curr_term
+    #             message['success'] = False
+    #         self.send(message)
             
-        self.leader_time = time.time()
+    #     self.leader_time = time.time()
                 
-    def send_request_vote_message(self, rep):
-        message = dict()
-        message['src'] = self.id
-        message['dst'] = rep
-        message['leader'] = BROADCAST
-        message['type'] = 'send_request_vote'
-        message['term'] = self.curr_term
-        message['cand_id'] = self.id
-        message['last_log_index'] = len(self.log) - 1
-        message['last_log_term'] = 0
-        self.send(message)
+    # def send_request_vote_message(self, rep):
+    #     message = dict()
+    #     message['src'] = self.id
+    #     message['dst'] = rep
+    #     message['leader'] = BROADCAST
+    #     message['type'] = 'send_request_vote'
+    #     message['term'] = self.curr_term
+    #     message['cand_id'] = self.id
+    #     message['last_log_index'] = len(self.log) - 1
+    #     message['last_log_term'] = 0
+    #     self.send(message)
 
-    def election(self):
-        self.curr_term += 1
-        self.voted_for = self.id
-        self.votes = [self.id]
-        #may remove
-        self.in_election = True
-        self.leader_time = time.time()
-        for rep in self.others:
-            self.send_request_vote_message(rep)
+    # def election(self):
+    #     self.curr_term += 1
+    #     self.voted_for = self.id
+    #     self.votes = [self.id]
+    #     #may remove
+    #     self.in_election = True
+    #     self.leader_time = time.time()
+    #     for rep in self.others:
+    #         self.send_request_vote_message(rep)
             
-    def recv_request_vote_message(self, msg):
-        message = dict()
-        message['src'] = self.id
-        message['dst'] = msg['src']
-        message['leader'] = BROADCAST
-        message['type'] = 'recv_request_vote'
-        message['term'] = self.curr_term
+    # def recv_request_vote_message(self, msg):
+    #     message = dict()
+    #     message['src'] = self.id
+    #     message['dst'] = msg['src']
+    #     message['leader'] = BROADCAST
+    #     message['type'] = 'recv_request_vote'
+    #     message['term'] = self.curr_term
         
-        if msg['term'] < self.curr_term:
-            message['vote'] = True
-        elif self.voted_for == 0 or self.voted_for == msg['cand_id']:
-            if not self.log and msg['last_log_index'] == -1:
-                message['vote'] = True
-                self.voted_for = msg['src']
-                # FIX LATER
-                self.curr_term = msg['term']
-            else:
-                message['vote'] = False
-        else:
-            message['vote'] = False
-        self.leader_time = time.time()
-        self.send(message)
+    #     if msg['term'] < self.curr_term:
+    #         message['vote'] = True
+    #     elif self.voted_for == 0 or self.voted_for == msg['cand_id']:
+    #         if not self.log and msg['last_log_index'] == -1:
+    #             message['vote'] = True
+    #             self.voted_for = msg['src']
+    #             # FIX LATER
+    #             self.curr_term = msg['term']
+    #         else:
+    #             message['vote'] = False
+    #     else:
+    #         message['vote'] = False
+    #     self.leader_time = time.time()
+    #     self.send(message)
         
     def heartbeat_message(self):
         message = dict()
@@ -187,19 +187,19 @@ class Replica:
             self.send(message)
         self.heartbeat_time = time.time()
         
-    def do_election(self, msg):
-        if not self.election :
-            return
-        if not msg['vote']:
-            return
-        self.votes.append(msg['src'])
+    # def do_election(self, msg):
+    #     if not self.election :
+    #         return
+    #     if not msg['vote']:
+    #         return
+    #     self.votes.append(msg['src'])
         
-        if len(self.votes) > (self.cluster/2):
-            self.leader = self.id
-            self.votes = []
-            self.election = False
-            self.have_leader = True
-            self.heartbeat_message()
+    #     if len(self.votes) > (self.cluster/2):
+    #         self.leader = self.id
+    #         self.votes = []
+    #         self.election = False
+    #         self.have_leader = True
+    #         self.heartbeat_message()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='run a key-value store')
