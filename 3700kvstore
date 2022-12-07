@@ -86,10 +86,6 @@ class Replica:
         if msg['type'] == 'get':
             val = self.store.get(msg['key'])
             message['value'] = '' if val is None else val
-            # if msg['key'] in self.store:
-            #     message['val'] = self.store.get(msg['key'])
-            # else:
-            #     message['val'] = ''
         elif msg['type'] == 'put':
             message['value'] = msg['value']
             self.store[msg['key']] = msg['value']
