@@ -33,16 +33,10 @@ class Replica:
         message['leader'] = self.leader
         message['type'] = 'ok'
         message['MID'] = msg['MID']
+        message['key'] = msg['key']
+        message['value'] = msg['value']
         
-        message2 = {}
-        message2['src'] = msg['dst']
-        message2['dst'] = 'FFFF'
-        message2['leader'] = self.leader
-        message2['type'] = 'fail'
-        message2['MID'] = msg['MID']
-        self.send(message2)
-        
-        return message
+        self.send(message)
     
     def get_message(self, msg) :
         message = {}
@@ -51,9 +45,21 @@ class Replica:
         message['leader'] = self.leader
         message['type'] = 'ok'
         message['MID'] = msg['MID']
-        message['value'] = self.store.get(msg['key'], '')
         
-        return message
+        if msg['key'] in self.store:
+            message['value'] = self.store.get(msg['key'])
+            self.send(message)
+        else:
+            self.fail_message(msg)
+    
+    def fail_message(self, msg):
+        message = dict()
+        message['src'] = self.id
+        message['dst'] = msg['src']
+        message['leader'] = 'FFFF'
+        message['type'] = 'fail'
+        message['MID'] = msg['MID']
+        self.send(message)
     
     def run(self):
         while True:
@@ -74,9 +80,9 @@ class Replica:
                 self.send(message)
 
             elif data_msg['type'] == 'put':
-                self.send(self.put_message(data_msg))
+                self.put_message(data_msg)
             if data_msg['type'] == 'get':
-                self.send(self.get_message(data_msg))
+                self.get_message(data_msg)
 
             
 
