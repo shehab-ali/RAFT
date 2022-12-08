@@ -36,6 +36,14 @@ class Replica:
         message['key'] = msg['key']
         message['value'] = msg['value']
         
+        message2 = {}
+        message2['src'] = msg['dst']
+        message2['dst'] = 'FFFF'
+        message2['leader'] = self.leader
+        message2['type'] = 'fail'
+        message2['MID'] = msg['MID']
+        self.send(message2)
+        
         self.send(message)
     
     def get_message(self, msg) :
