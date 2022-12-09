@@ -9,8 +9,11 @@ class Replica:
         self.port = port
         self.id = id
         self.others = others
-
+        
+        # Leader's initial state
         self.leader = '0000'
+        
+        # store that keeps track of the previous exchanges
         self.store = {}
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -32,7 +35,8 @@ class Replica:
             #print("Received message '%s'" % (msg,), flush=True)
             
             data_msg = json.loads(msg)
-
+               
+            # if the message is get or put and we are currently not on the leader
             if self.id != self.leader and (data_msg['type'] == 'get' or 'put'):
                 message = {}
                 message['src'] = data_msg['dst']
@@ -41,12 +45,14 @@ class Replica:
                 message['type'] = 'redirect'
                 message['MID'] = data_msg['MID']
                 self.send(message)
-
+            # put messages for the leader
             elif data_msg['type'] == 'put':
                 self.put_message(data_msg)
+            # get messages for the leader
             if data_msg['type'] == 'get':
                 self.get_message(data_msg)     
 
+    # outs the msg in the parameters and sends it back to the src
     def put_message(self, msg) :
         self.store[msg['key']] = msg['value']
         message = {}
@@ -59,6 +65,7 @@ class Replica:
         message['value'] = msg['value']
         
         self.send(message)
+        # sends fail messages if it's not in the store
         if msg['key'] not in self.store:
             self.append_entries_message(msg)
         self.fail_message(msg)
@@ -72,6 +79,7 @@ class Replica:
         # message2['MID'] = msg['MID']
         # self.send(message2)
     
+    # sends get messages back to the source
     def get_message(self, msg) :
         message = {}
         message['src'] = msg['dst']
@@ -80,12 +88,14 @@ class Replica:
         message['type'] = 'ok'
         message['MID'] = msg['MID']
         
+        # sends fail messages if key is not in the store
         if msg['key'] in self.store:
             message['value'] = self.store.get(msg['key'])
             self.send(message)
         else:
             self.fail_message(msg)
     
+    # sends a fail message to leader
     def fail_message(self, msg):
         message = dict()
         message['src'] = msg['dst']
@@ -95,6 +105,7 @@ class Replica:
         message['MID'] = msg['MID']
         self.send(message)
         
+    # sends append entries message to the original source again
     def append_entries_message(self, msg):
         message = {}
         message['src'] = self.id
