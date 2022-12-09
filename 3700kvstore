@@ -15,6 +15,15 @@ class Replica:
         
         # store that keeps track of the previous exchanges
         self.store = {}
+        
+        # whether or not we need election
+        self.election = False
+        # list of votes
+        self.votes = []
+        # whether we have a leader or not
+        self.have_leader = True
+        # length of clusters of followers and leaders
+        self.cluster = 0
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.bind(('localhost', 0))
@@ -114,7 +123,33 @@ class Replica:
         message['leader'] = self.leader
         message['MID'] = msg['MID']
         self.send(message)
+    
+    # sends heartbeat messages
+    def heartbeat_message(self):
+        message = {}
+        message['src'] = self.id
+        message['leader'] = self.leader
+        message['type'] = 'heartbeat'
+        message['entries'] = []
+        message['term'] = self.curr_term
+        for rep in self.others:
+            message['dst'] = rep
+            self.send(message)
+        self.heartbeat_time = time.time()
 
+    # starts a new election
+    def do_election(self, msg):
+        if not self.election or not msg['vote']:
+            return
+        self.votes.append(msg['src'])
+
+        if len(self.votes) > (self.cluster/2):
+            self.leader = self.id
+            self.votes = []
+            self.election = False
+            self.have_leader = True
+            self.heartbeat_message()
+     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='run a key-value store')
     parser.add_argument('port', type=int, help="Port number to communicate")
